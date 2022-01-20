@@ -1,0 +1,8 @@
+repo: https://artifactory-lvn.broadcom.net/artifactory/helm-release-candidate-local
+chart: std-cicd-helm-helloworld/master/mychart-1.0.4.tgz
+values: ./values.yaml
+command: upgrade
+commandOptions: --install --debug
+releaseName: helm-helloworld-master
+images:
+  helloworld: docker-release-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/master/helloworld:8.0.3

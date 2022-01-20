@@ -1,0 +1,8 @@
+repo: https://artifactory-lvn.broadcom.net/artifactory/helm-release-candidate-local
+chart: std-cicd-helm-helloworld/snapshot/mychart-1.0.5.tgz
+values: ./values.yaml
+command: upgrade
+commandOptions: --install --debug
+releaseName: helm-helloworld-feature-cv2
+images:
+  helloworld: docker-release-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/snapshot/helloworld3:feature-is-son-cov

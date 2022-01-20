@@ -1,0 +1,6 @@
+@Library('GTSO-CI-Jenkins-Library@dev-v1.1.0') _
+scanPipeline build_config: "resources/build-info.yaml",
+integration_branch: "dev*",
+verify_branch: "verify*",
+prod_branch: "master*",
+jenkins_node_label: "jenkins_slave_new"

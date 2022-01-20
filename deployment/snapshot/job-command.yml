@@ -1,0 +1,7 @@
+jobName: "test-job"
+jobYaml: "./job.yaml"
+waitForCompletion: "false"
+waitForCompletionTimeout: "240"
+ignoreFailure: "no"
+images:
+  helloworld: docker-release-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/snapshot/helloworld3:featute-is-son-cov

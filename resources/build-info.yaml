@@ -1,0 +1,273 @@
+# Copyright 2020 Google LLC. This software is provided as is, without warranty or representation for any use or purpose.
+# Your use of it is subject to your agreement with Google.
+# Copyright 2020 Google LLC. This software is provided as is, without warranty or representation for any use or purpose.
+# Your use of it is subject to your agreement with Google. 
+#
+# ******************************************************************************* #
+#                    build_steps section is mandatory                             #
+#       Please remove the whole section if you want to skip that stage            #
+#        Please ensure you enclose each path in quotes separated by a single comma#
+#       (with no spaces in between, if you are scanning multiple paths).           #
+#*********************************************************************************#
+#
+
+# blackduck_properties:
+#   image:
+#      name: "docker-release-candidate-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/broadcom-jenkins-executor-images/centos/latest/maven:latest"
+#      docker_run_params: ''
+#   full_scan: "no"
+#   project_name: "CI_CD_Pipeline"
+#   project_version: "demo-branch"
+#   # project version phase values PLANNING, DEVELOPMENT,PRE-RELEASE,RELEASED,DEPRECATED,ARCHIVED
+#   project_version_phase: "DEVELOPMENT"
+#   # if full scan of code is not required, mention the folders below
+#   scan_folders: "src"
+
+# coverity_properties:
+#   image:    
+#     name: "docker-release-candidate-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/broadcom-jenkins-executor-images/centos/latest/coverity:latest"
+#     docker_run_params: ''
+#   project_name: "ICDS-Incident-Manager"
+#   stream_name: "ICDS-Incident-Manager"
+#   view_name: "Outstanding Untriaged"
+#   # view name can be - High Impact Outstanding,My Outstanding,Outstanding Issues, Outstanding Test Rules Violations, Outstanding Untriaged
+#   coverity_instance_url: "http://cov-ren-01.ren.broadcom.net:8080"
+#   create_missing_project_and_streams: "false" # accepted values are true and false. 
+#   # Keep it true for auto creation of any new project or streams
+#   full_scan: "yes" 
+
+# sonar_properties:
+#   skip_quality_gate: no
+#   severity_threshold: MAJOR
+#   #***********************************************************************************************************************************#
+#   #severity_threshold supports  WARN,MAJOR,CRITICAL values. WARN will skip info and Minor issues, Major will skip info,minor,         #
+#   # major issues  and Critical will skip info,minor,major,critical issues.							      #
+#   #***********************************************************************************************************************************#
+#   image:
+#       name: docker-release-candidate-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/custom-sonar-image:latest
+#       docker_run_params: -v /tmp/tools:/tmp/tools -v /usr/local/bin:/usr/local/bin
+#   #**********************************************************************************************************************************#
+#   #Below sonar_conf containts properties section to run Sonar, If sonar-project.properties is exist in repo below section will be    #
+#   # ignored  otherwise sonar properties will be created dynamically based on the values given below.				     #
+#   #**********************************************************************************************************************************#
+#   sonar_conf:
+#   -   sonar.projectKey: cicd-jenkins
+#       sonar.projectName: cicd-jenkins
+#       sonar.branch.name: feature-async
+#       sonar.projectVersion: 2.0
+#       sonar.sources: src
+#       sonar.language: java
+#       sonar.java.binaries: target/classes
+#       sonar.sourceEncoding : UTF-8
+#       sonar.web.host: sonarqube-dev.broadcom.net
+#       sonar.web.port: 9000
+#       sonar.login: dd037190e97481c279528264fe5c97871408b55a
+
+build_steps:
+  - name: Code Compile
+    source: "."
+    image:
+      # name: docker-release-candidate-local.artifactory-lvn.broadcom.net/broadcom-jenkins-executor-images/centos/8/maven:latest
+      name: nis-hsebloc-docker-virtual.artifactory-ren.broadcom.net/ultra/ultra-build:latest
+      docker_run_params: '-v /tmp/tools:/tmp/tools -v $HOME/.m2:/root/.m2'
+    commands:
+      - "mvn -v"
+      - "mvn clean install -Dskiptests"
+
+    # Optional for artifacts
+#     artifacts:
+#       # type : [mvn/ant/gradle]
+#       type: mvn
+#       # Below command will deploy the artifact to Jfrog Artifactory
+#       deploy:
+#         command: "mvn deploy -B -DskipTests"
+#         artifactory_id: snapshots
+
+test_steps:
+  - name: Code Unit Test
+    source: "."
+    image:
+      name: docker-release-candidate-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/custom-maven-image:latest
+      docker_run_params: '-v $HOME/.m2:/root/.m2'
+    commands:
+      - "mvn test"
+    junit: target/surefire-reports/*.xml
+
+docker_build:
+  - name: saaspoc-base-helloworld
+    Dockerfile_dir: .
+    Dockerfile_name: Dockerfile
+    #Docker_build_args: "VERSION=dev"
+    pre_steps:
+      - ls -l
+      - echo cp
+    tag: 1.0.1
+    
+  - name: saaspoc-base-helloworld-2
+    Dockerfile_dir: .
+    Dockerfile_name: Dockerfile
+    Docker_build_args: ""
+    pre_steps:
+      - ls -l
+      - echo cp
+    tag: 1.0.2
+
+
+helm_build:
+  - name: Helm-Build
+    image:
+      name: "docker-release-candidate-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/custom-helm-image:latest"
+      docker_run_params: ""
+    helm_dir: mychart
+    # If tag is not present, it will take the version from chart.yaml present in helm_dir
+    tag: 1.0.1
+    commands:
+      - helm lint
+      - helm package .
+
+build_steps:
+  - name: Code Compile
+    source: "."
+    image:
+      name: docker-release-candidate-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/custom-broadcom-maven-image:latest
+      docker_run_params: '-v $HOME/.m2:/root/.m2'
+    commands:
+      - "mvn -v"
+      - "mvn clean install -Dskiptests"
+      
+test_steps:
+  - name: Code Unit Test
+    source: "."
+    image:
+      name: docker-release-candidate-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/custom-maven-image:latest
+      docker_run_params: '-v $HOME/.m2:/root/.m2'
+    commands:
+      - "mvn test"
+    junit: target/surefire-reports/*.xml
+
+helm_build:
+  - name: Helm-Build
+    image:
+      name: "docker-release-candidate-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/custom-helm-image:latest"
+      docker_run_params: ""
+    helm_dir: mychart
+    # If tag is not present, it will take the version from chart.yaml present in helm_dir
+    tag: 1.0.1
+    commands:
+      - helm lint
+      - helm package .
+credentials:
+  jfrog: "jfrog-artifact"
+
+ 
+
+publish_config:
+    docker_login_credentials: "sg037737-docker-login"
+    #publish_jfrog_credentials: "jfrog-artifact"
+    docker:
+      # std-cicd-helm-helloworld -> Product specific Unique folder
+      snapshot: docker-release-candidate-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/snapshot
+      integration: docker-release-candidate-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/integration
+      dev: docker-release-candidate-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/integration
+      verify: docker-release-candidate-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/verify
+      prod: docker-release-candidate-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/prod
+    helm:
+      snapshot: https://artifactory-lvn.broadcom.net/artifactory/helm-release-candidate-local/std-cicd-helm-helloworld/snapshot
+      integration: https://artifactory-lvn.broadcom.net/artifactory/helm-release-candidate-local/std-cicd-helm-helloworld/integration
+      verify: https://artifactory-lvn.broadcom.net/artifactory/helm-release-candidate-local/std-cicd-helm-helloworld/verify
+      prod: https://artifactory-lvn.broadcom.net/artifactory/helm-release-candidate-local/std-cicd-helm-helloworld/prod
+      
+    # Optional for Artifacts
+    artifact:
+      snapshot: https://artifactory-lvn.broadcom.net/artifactory/maven-integration-local
+      integration: https://artifactory-lvn.broadcom.net/artifactory/maven-release-candidate-local
+      verify: https://artifactory-lvn.broadcom.net/artifactory/maven-release-candidate-local
+      prod: https://artifactory-lvn.broadcom.net/artifactory/maven-release-candidate-local
+
+
+
+deploy_config:
+    deploy: false
+    #entrypoint: job
+    image:
+      name: "docker-release-candidate-local.artifactory-lvn.broadcom.net/std-cicd-helm-helloworld/custom-git-image:latest"
+      docker_run_params: "-v /tmp/gitssh:$HOME/.ssh"
+    cd_repo_snapshot: https://github.gwd.broadcom.net/dockcpdev/gtso-helm-helloworld.git
+    cd_repo_integration: https://github.gwd.broadcom.net/dockcpdev/gtso-helm-helloworld.git
+    cd_repo_verify: https://github.gwd.broadcom.net/dockcpdev/gtso-helm-helloworld.git
+    cd_repo_prod: https://github.gwd.broadcom.net/dockcpdev/gtso-helm-helloworld.git 
+    cd_git_credentials_snapshot: "BROADCOM"
+    cd_git_credentials_integration: "BROADCOM"
+    cd_git_credentials_verify: "BROADCOM"
+    cd_git_credentials_prod: "BROADCOM"
+    cd_git_user:
+      name: "Jenkins Worker"
+      email: "chintan.vyas@broadcom.com"
+    
+    # team_info should be mandatory if you provide deploy_config
+    team_info:
+      team_name: "saaspoc"
+      
+    #********************************************************************************************************#
+    # namespace : <team-name>-<namespace> ex: sedicdsaas-[your namespace]                                    #
+    # team_info.team_name will get prefixed to the namespace provided below.                                 #
+    # If the provided namespace with team_name prefix then we will use the provided as namespace             #
+    # For snapshot - If you provide namespace sameabove conditions will apply to the namespace               #
+    # In case if you don't provide namespace for snapshot, <team_name>-<branch> will be used as namespace    #
+    #********************************************************************************************************#
+    
+    
+    environments:
+      snapshot:
+        - gke: gkegtsoent1
+#         - gke: gkegtsoent2
+#           namespace: test-snapshot-namespace
+#         - gke: gkegtsoent3
+#           namespace: my-namespace
+#           partitions:
+#             - folder: cp1
+#             - folder: cp2
+#             - folder: cp3
+      integration:
+        gke: gkegtsoent
+        namespace: test-integration-namespace
+
+
+      dev-prefix-test:
+        gke: gkegtsoent
+        namespace: test-integration-namespace-again
+        
+
+      verify:
+        gke: gkegtsoent
+        namespace: test-verify-namespace
+
+      verify-prefix:
+        gke: gkegtsoent
+        namespace: test-verify-prefix-namespace
+      prod:
+        - gke: gkegtsoent
+          namespace: test-prod-prefix-namespace
+        #deployment_folder: master-green
+        #namespace: test-prod-namespace 
+        
+
+      master-green:
+        gke: gkegtsoent
+        namespace: test-master-green-namespace
+        
+      master-prefix:
+        gke: gkegtsoent
+        namespace: test-master-prefix-namespace
+
+    image_scan:
+      skip_image_scan: "yes"
+      severity_threshold: "warn"
+      ignore_failures: "yes"
+    integration_test:
+      skip_integration_test: "no"
+      
+    google_chat:
+      skip_google_chat: "no"
+      token: "Way7BGPHlhDzDDuPzxufr5tlV"
+      threadByJob: true 

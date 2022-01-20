@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: helm-hello-world-master
+spec:
+  parallelism: 1
+  completions: 1
+  backoffLimit: 4
+  activeDeadlineSeconds: 60
+  template:
+    spec:
+      containers:
+      - name: test-job
+        image: gcr.io/saaspoc-gtso-enterprise-gke/gkegtsoent/hw-ns-feature-cv2/helloworld:8.0.5
+        command: []
+      restartPolicy: Never

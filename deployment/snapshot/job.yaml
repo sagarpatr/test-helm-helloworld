@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: test-job
+spec:
+  parallelism: 1
+  completions: 1
+  backoffLimit: 4
+  activeDeadlineSeconds: 240
+  template:
+    spec:
+      containers:
+      - name: test-job
+        image: gcr.io/saaspoc-gtso-enterprise-gke/gkegtsoent/feature-is-son-cov/helloworld3:feature-is-son-cov
+        command: ["/bin/bash","-c","mvn test"]
+      restartPolicy: Never

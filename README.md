@@ -9,5 +9,6 @@
     ```
     publish_config:
             publish_jfrog_credentials: "jfrog-artifact"
+            
     ```
 
